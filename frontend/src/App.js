@@ -3,10 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Stores
 import { useAuthStore } from './store/authStore';
-
-// Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -14,8 +11,6 @@ import UserDashboard from './pages/UserDashboard';
 import QuizPage from './pages/QuizPage';
 import ResultsPage from './pages/ResultsPage';
 import NotFoundPage from './pages/NotFoundPage';
-
-// Components
 import PrivateRoute from './components/PrivateRoute';
 import Navbar from './components/Navbar';
 
@@ -30,23 +25,13 @@ function App() {
         <Router>
             <div className="min-h-screen bg-gray-50">
                 {isAuthenticated && <Navbar />}
-                <ToastContainer
-                    position="top-right"
-                    autoClose={3000}
-                    hideProgressBar={false}
-                    newestOnTop={true}
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                />
+                <ToastContainer position="top-right" autoClose={3000} newestOnTop closeOnClick pauseOnHover />
                 <Routes>
-                    {/* Public Routes */}
+                    {/* Public */}
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
 
-                    {/* Protected Routes */}
+                    {/* Admin */}
                     <Route
                         path="/admin/*"
                         element={
@@ -55,6 +40,8 @@ function App() {
                             </PrivateRoute>
                         }
                     />
+
+                    {/* User */}
                     <Route
                         path="/dashboard"
                         element={
@@ -80,23 +67,18 @@ function App() {
                         }
                     />
 
-                    {/* Default Routes */}
+                    {/* Root redirect */}
                     <Route
                         path="/"
                         element={
-                            isAuthenticated ? (
-                                user?.role === 'admin' ? (
-                                    <Navigate to="/admin" />
-                                ) : (
-                                    <Navigate to="/dashboard" />
-                                )
-                            ) : (
-                                <Navigate to="/login" />
-                            )
+                            isAuthenticated
+                                ? user?.role === 'admin'
+                                    ? <Navigate to="/admin" replace />
+                                    : <Navigate to="/dashboard" replace />
+                                : <Navigate to="/login" replace />
                         }
                     />
 
-                    {/* 404 */}
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </div>
