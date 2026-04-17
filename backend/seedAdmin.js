@@ -28,7 +28,7 @@ const createAdmin = async () => {
         console.log('========================================');
         console.log('  Admin created successfully!');
         console.log('========================================');
-        console.log('  Email   : admin@quiz.com');
+        console.log('  Email   : ');
         console.log('  Password: Admin123');
         console.log('  Role    : admin');
         console.log('========================================');

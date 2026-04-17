@@ -1,6 +1,6 @@
 const { body, validationResult } = require('express-validator');
 
-// Validation middleware
+// Validation result handler
 exports.validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -13,7 +13,7 @@ exports.validate = (req, res, next) => {
     next();
 };
 
-// Registration validation
+// Registration validation — relaxed password rule
 exports.validateRegistration = [
     body('fullName')
         .trim()
@@ -24,7 +24,6 @@ exports.validateRegistration = [
         .isEmail().withMessage('Please provide a valid email'),
     body('password')
         .isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain uppercase, lowercase, and numbers')
 ];
 
 // Login validation
@@ -36,15 +35,15 @@ exports.validateLogin = [
         .notEmpty().withMessage('Password is required')
 ];
 
-// Question validation
+// Question validation — options is array of plain strings
 exports.validateQuestion = [
     body('questionText')
         .trim()
         .notEmpty().withMessage('Question text is required')
-        .isLength({ min: 10 }).withMessage('Question must be at least 10 characters'),
+        .isLength({ min: 5 }).withMessage('Question must be at least 5 characters'),
     body('options')
         .isArray({ min: 4, max: 4 }).withMessage('Question must have exactly 4 options'),
-    body('options.*.text')
+    body('options.*')
         .trim()
         .notEmpty().withMessage('Option text cannot be empty'),
     body('correctAnswerIndex')
@@ -69,10 +68,12 @@ exports.validateQuiz = [
     body('questions')
         .isArray({ min: 1 }).withMessage('Quiz must contain at least one question'),
     body('timeLimit')
-        .optional()
+        .optional({ nullable: true })
+        .if(body('timeLimit').notEmpty())
         .isInt({ min: 1 }).withMessage('Time limit must be at least 1 minute'),
     body('maxAttempts')
-        .optional()
+        .optional({ nullable: true })
+        .if(body('maxAttempts').notEmpty())
         .isInt({ min: 1 }).withMessage('Max attempts must be at least 1'),
     body('passingScore')
         .optional()

@@ -22,24 +22,26 @@ const RegisterPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (formData.password !== formData.confirmPassword) {
-            toast.error('Passwords do not match');
-            return;
-        }
-
         if (formData.password.length < 6) {
             toast.error('Password must be at least 6 characters');
             return;
         }
 
-        setLoading(true);
+        if (formData.password !== formData.confirmPassword) {
+            toast.error('Passwords do not match');
+            return;
+        }
 
+        setLoading(true);
         try {
             await register(formData.fullName, formData.email, formData.password);
             toast.success('Registration successful! Please wait for admin approval.');
             navigate('/login');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Registration failed');
+            const msg = error.response?.data?.errors?.[0]?.msg
+                || error.response?.data?.message
+                || 'Registration failed';
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -48,82 +50,83 @@ const RegisterPage = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
             <div className="w-full max-w-md">
-                <div className="bg-white rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-2xl shadow-lg p-8">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <span className="text-white text-2xl font-bold">Q</span>
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-800">Quiz System</h1>
-                        <p className="text-gray-600 mt-2">Create your account</p>
+                        <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
+                        <p className="text-gray-500 mt-1 text-sm">Fill in your details to register</p>
                     </div>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Full Name
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                             <input
                                 type="text"
                                 name="fullName"
                                 value={formData.fullName}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                                minLength={2}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
                                 placeholder="John Doe"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email Address
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
                                 placeholder="you@example.com"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Password
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                             <input
                                 type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                                placeholder="••••••••"
+                                minLength={6}
+                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                                placeholder="At least 6 characters"
                             />
+                            <p className="text-xs text-gray-400 mt-1">Minimum 6 characters</p>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Confirm Password
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
                             <input
                                 type="password"
                                 name="confirmPassword"
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                                placeholder="••••••••"
+                                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm ${formData.confirmPassword && formData.password !== formData.confirmPassword
+                                        ? 'border-red-400 bg-red-50'
+                                        : 'border-gray-300'
+                                    }`}
+                                placeholder="Repeat your password"
                             />
+                            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                                <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                            )}
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                         >
                             {loading ? 'Creating account...' : 'Create Account'}
                         </button>
@@ -131,7 +134,7 @@ const RegisterPage = () => {
 
                     {/* Footer */}
                     <div className="mt-6 text-center">
-                        <p className="text-gray-600">
+                        <p className="text-gray-500 text-sm">
                             Already have an account?{' '}
                             <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
                                 Sign in
