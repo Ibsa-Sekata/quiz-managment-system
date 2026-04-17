@@ -1,73 +1,71 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const sequelize = require('../config/database');
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     fullName: {
-        type: String,
-        required: [true, 'Full name is required'],
-        trim: true,
-        minlength: [2, 'Full name must be at least 2 characters']
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        validate: {
+            len: [2, 255]
+        }
     },
     email: {
-        type: String,
-        required: [true, 'Email is required'],
+        type: DataTypes.STRING(255),
+        allowNull: false,
         unique: true,
         lowercase: true,
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
+        validate: {
+            isEmail: true
+        }
     },
     password: {
-        type: String,
-        required: [true, 'Password is required'],
-        minlength: [6, 'Password must be at least 6 characters'],
-        select: false
+        type: DataTypes.STRING(255),
+        allowNull: false
     },
     role: {
-        type: String,
-        enum: ['user', 'admin'],
-        default: 'user'
+        type: DataTypes.ENUM('user', 'admin'),
+        defaultValue: 'user'
     },
     status: {
-        type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+        type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+        defaultValue: 'pending'
     },
     rejectionReason: {
-        type: String,
-        default: null
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.TEXT,
+        allowNull: true
     }
-}, { timestamps: true });
-
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-
-    try {
-        const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_ROUNDS) || 10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (error) {
-        next(error);
+}, {
+    tableName: 'users',
+    hooks: {
+        beforeCreate: async (user) => {
+            if (user.password) {
+                const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_ROUNDS) || 10);
+                user.password = await bcrypt.hash(user.password, salt);
+            }
+        },
+        beforeUpdate: async (user) => {
+            if (user.changed('password')) {
+                const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_ROUNDS) || 10);
+                user.password = await bcrypt.hash(user.password, salt);
+            }
+        }
     }
 });
 
-// Method to compare passwords
-userSchema.methods.comparePassword = async function (enteredPassword) {
+User.prototype.comparePassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Method to get user without password
-userSchema.methods.toJSON = function () {
-    const obj = this.toObject();
-    delete obj.password;
-    return obj;
+User.prototype.toJSON = function () {
+    const values = Object.assign({}, this.get());
+    delete values.password;
+    return values;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

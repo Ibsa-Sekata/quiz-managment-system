@@ -1,26 +1,24 @@
-const Question = require('../models/Question');
-const Quiz = require('../models/Quiz');
+const { Question, Quiz, QuizQuestion } = require('../models');
+const { Op } = require('sequelize');
 
 // Create question (Admin only)
 exports.createQuestion = async (req, res) => {
     try {
         const { questionText, options, correctAnswerIndex, category, tags, difficulty, explanation } = req.body;
 
-        const question = new Question({
+        const question = await Question.create({
             questionText,
-            options: options.map((text, index) => ({
-                text,
-                isCorrect: index === correctAnswerIndex
-            })),
+            optionA: options[0],
+            optionB: options[1],
+            optionC: options[2],
+            optionD: options[3],
             correctAnswerIndex,
             category,
             tags: tags || [],
             difficulty: difficulty || 'medium',
             explanation,
-            createdBy: req.user._id
+            createdById: req.user.id
         });
-
-        await question.save();
 
         res.status(201).json({
             success: true,
@@ -41,25 +39,25 @@ exports.getAllQuestions = async (req, res) => {
     try {
         const { category, difficulty, tags, page = 1, limit = 10 } = req.query;
 
-        let filter = {};
-        if (category) filter.category = category;
-        if (difficulty) filter.difficulty = difficulty;
-        if (tags) filter.tags = { $in: tags.split(',') };
+        let where = {};
+        if (category) where.category = category;
+        if (difficulty) where.difficulty = difficulty;
+        if (tags) where.tags = { [Op.contains]: tags.split(',') };
 
-        const skip = (page - 1) * limit;
-        const questions = await Question.find(filter)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
-
-        const total = await Question.countDocuments(filter);
+        const offset = (page - 1) * limit;
+        const { count, rows } = await Question.findAndCountAll({
+            where,
+            offset,
+            limit: parseInt(limit),
+            order: [['createdAt', 'DESC']]
+        });
 
         res.status(200).json({
             success: true,
-            total,
+            total: count,
             page: parseInt(page),
             limit: parseInt(limit),
-            questions
+            questions: rows
         });
     } catch (error) {
         res.status(500).json({
@@ -75,7 +73,10 @@ exports.getQuestionById = async (req, res) => {
     try {
         const { questionId } = req.params;
 
-        const question = await Question.findById(questionId).populate('createdBy', 'fullName email');
+        const question = await Question.findByPk(questionId, {
+            include: [{ association: 'creator', attributes: ['id', 'fullName', 'email'] }]
+        });
+
         if (!question) {
             return res.status(404).json({
                 success: false,
@@ -102,7 +103,7 @@ exports.updateQuestion = async (req, res) => {
         const { questionId } = req.params;
         const { questionText, options, correctAnswerIndex, category, tags, difficulty, explanation } = req.body;
 
-        const question = await Question.findById(questionId);
+        const question = await Question.findByPk(questionId);
         if (!question) {
             return res.status(404).json({
                 success: false,
@@ -111,7 +112,7 @@ exports.updateQuestion = async (req, res) => {
         }
 
         // Check if question is used in any quiz
-        const quizCount = await Quiz.countDocuments({ questions: questionId });
+        const quizCount = await QuizQuestion.count({ where: { questionId } });
         if (quizCount > 0) {
             return res.status(400).json({
                 success: false,
@@ -121,10 +122,10 @@ exports.updateQuestion = async (req, res) => {
 
         if (questionText) question.questionText = questionText;
         if (options) {
-            question.options = options.map((text, index) => ({
-                text,
-                isCorrect: index === correctAnswerIndex
-            }));
+            question.optionA = options[0];
+            question.optionB = options[1];
+            question.optionC = options[2];
+            question.optionD = options[3];
         }
         if (correctAnswerIndex !== undefined) question.correctAnswerIndex = correctAnswerIndex;
         if (category) question.category = category;
@@ -153,7 +154,7 @@ exports.deleteQuestion = async (req, res) => {
     try {
         const { questionId } = req.params;
 
-        const question = await Question.findById(questionId);
+        const question = await Question.findByPk(questionId);
         if (!question) {
             return res.status(404).json({
                 success: false,
@@ -162,7 +163,7 @@ exports.deleteQuestion = async (req, res) => {
         }
 
         // Check if question is used in any quiz
-        const quizCount = await Quiz.countDocuments({ questions: questionId });
+        const quizCount = await QuizQuestion.count({ where: { questionId } });
         if (quizCount > 0) {
             return res.status(400).json({
                 success: false,
@@ -170,7 +171,7 @@ exports.deleteQuestion = async (req, res) => {
             });
         }
 
-        await Question.findByIdAndDelete(questionId);
+        await question.destroy();
 
         res.status(200).json({
             success: true,
@@ -191,20 +192,20 @@ exports.getQuestionsByCategory = async (req, res) => {
         const { category } = req.params;
         const { page = 1, limit = 10 } = req.query;
 
-        const skip = (page - 1) * limit;
-        const questions = await Question.find({ category })
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
-
-        const total = await Question.countDocuments({ category });
+        const offset = (page - 1) * limit;
+        const { count, rows } = await Question.findAndCountAll({
+            where: { category },
+            offset,
+            limit: parseInt(limit),
+            order: [['createdAt', 'DESC']]
+        });
 
         res.status(200).json({
             success: true,
-            total,
+            total: count,
             page: parseInt(page),
             limit: parseInt(limit),
-            questions
+            questions: rows
         });
     } catch (error) {
         res.status(500).json({
@@ -218,12 +219,15 @@ exports.getQuestionsByCategory = async (req, res) => {
 // Get question statistics (Admin only)
 exports.getQuestionStatistics = async (req, res) => {
     try {
-        const totalQuestions = await Question.countDocuments();
-        const easyQuestions = await Question.countDocuments({ difficulty: 'easy' });
-        const mediumQuestions = await Question.countDocuments({ difficulty: 'medium' });
-        const hardQuestions = await Question.countDocuments({ difficulty: 'hard' });
+        const totalQuestions = await Question.count();
+        const easyQuestions = await Question.count({ where: { difficulty: 'easy' } });
+        const mediumQuestions = await Question.count({ where: { difficulty: 'medium' } });
+        const hardQuestions = await Question.count({ where: { difficulty: 'hard' } });
 
-        const categories = await Question.distinct('category');
+        const categories = await Question.findAll({
+            attributes: [[require('sequelize').fn('DISTINCT', require('sequelize').col('category')), 'category']],
+            raw: true
+        });
 
         res.status(200).json({
             success: true,
@@ -232,7 +236,7 @@ exports.getQuestionStatistics = async (req, res) => {
                 easyQuestions,
                 mediumQuestions,
                 hardQuestions,
-                categories
+                categories: categories.map(c => c.category)
             }
         });
     } catch (error) {

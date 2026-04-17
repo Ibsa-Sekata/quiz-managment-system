@@ -1,9 +1,13 @@
-const User = require('../models/User');
+const { User } = require('../models');
+const { Op } = require('sequelize');
 
 // Get all pending registration requests (Admin only)
 exports.getPendingRequests = async (req, res) => {
     try {
-        const pendingUsers = await User.find({ status: 'pending' }).sort({ createdAt: -1 });
+        const pendingUsers = await User.findAll({
+            where: { status: 'pending' },
+            order: [['createdAt', 'DESC']]
+        });
 
         res.status(200).json({
             success: true,
@@ -24,7 +28,7 @@ exports.approveUser = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        const user = await User.findById(userId);
+        const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -62,7 +66,7 @@ exports.rejectUser = async (req, res) => {
         const { userId } = req.params;
         const { reason } = req.body;
 
-        const user = await User.findById(userId);
+        const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -100,24 +104,24 @@ exports.getAllUsers = async (req, res) => {
     try {
         const { status, role, page = 1, limit = 10 } = req.query;
 
-        let filter = {};
-        if (status) filter.status = status;
-        if (role) filter.role = role;
+        let where = {};
+        if (status) where.status = status;
+        if (role) where.role = role;
 
-        const skip = (page - 1) * limit;
-        const users = await User.find(filter)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
-
-        const total = await User.countDocuments(filter);
+        const offset = (page - 1) * limit;
+        const { count, rows } = await User.findAndCountAll({
+            where,
+            offset,
+            limit: parseInt(limit),
+            order: [['createdAt', 'DESC']]
+        });
 
         res.status(200).json({
             success: true,
-            total,
+            total: count,
             page: parseInt(page),
             limit: parseInt(limit),
-            users
+            users: rows
         });
     } catch (error) {
         res.status(500).json({
@@ -133,7 +137,7 @@ exports.getUserById = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        const user = await User.findById(userId);
+        const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -158,9 +162,9 @@ exports.getUserById = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const { fullName, email } = req.body;
-        const userId = req.user._id;
+        const userId = req.user.id;
 
-        const user = await User.findById(userId);
+        const user = await User.findByPk(userId);
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -170,7 +174,7 @@ exports.updateProfile = async (req, res) => {
 
         if (fullName) user.fullName = fullName;
         if (email && email !== user.email) {
-            const existingUser = await User.findOne({ email });
+            const existingUser = await User.findOne({ where: { email } });
             if (existingUser) {
                 return res.status(400).json({
                     success: false,
@@ -199,11 +203,11 @@ exports.updateProfile = async (req, res) => {
 // Get user statistics (Admin only)
 exports.getUserStatistics = async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments();
-        const approvedUsers = await User.countDocuments({ status: 'approved' });
-        const pendingUsers = await User.countDocuments({ status: 'pending' });
-        const rejectedUsers = await User.countDocuments({ status: 'rejected' });
-        const adminUsers = await User.countDocuments({ role: 'admin' });
+        const totalUsers = await User.count();
+        const approvedUsers = await User.count({ where: { status: 'approved' } });
+        const pendingUsers = await User.count({ where: { status: 'pending' } });
+        const rejectedUsers = await User.count({ where: { status: 'rejected' } });
+        const adminUsers = await User.count({ where: { role: 'admin' } });
 
         res.status(200).json({
             success: true,

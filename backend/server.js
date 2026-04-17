@@ -1,10 +1,12 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+// Import database and models
+const { sequelize } = require('./models');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -34,12 +36,13 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-management', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log('MongoDB connection error:', err));
+sequelize.authenticate()
+    .then(() => {
+        console.log('MySQL database connected successfully');
+        return sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+    })
+    .then(() => console.log('Database models synchronized'))
+    .catch(err => console.log('Database connection error:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);

@@ -1,81 +1,58 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const quizSessionSchema = new mongoose.Schema({
+const QuizSession = sequelize.define('QuizSession', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     },
     quizId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Quiz',
-        required: true
-    },
-    answers: {
-        type: [
-            {
-                questionId: {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: 'Question',
-                    required: true
-                },
-                selectedAnswerIndex: {
-                    type: Number,
-                    required: true
-                },
-                isCorrect: {
-                    type: Boolean,
-                    default: false
-                },
-                answeredAt: {
-                    type: Date,
-                    default: Date.now
-                }
-            }
-        ],
-        default: []
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'quizzes',
+            key: 'id'
+        }
     },
     status: {
-        type: String,
-        enum: ['in-progress', 'submitted', 'completed'],
-        default: 'in-progress'
+        type: DataTypes.ENUM('in-progress', 'submitted', 'completed'),
+        defaultValue: 'in-progress'
     },
     score: {
-        type: Number,
-        default: null
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true
     },
     totalQuestions: {
-        type: Number,
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false
     },
     correctAnswers: {
-        type: Number,
-        default: 0
+        type: DataTypes.INTEGER,
+        defaultValue: 0
     },
     startedAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     },
     completedAt: {
-        type: Date,
-        default: null
+        type: DataTypes.DATE,
+        allowNull: true
     },
     timeSpent: {
-        type: Number,
-        default: 0 // in seconds
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.INTEGER,
+        defaultValue: 0
     }
-}, { timestamps: true });
+}, {
+    tableName: 'quiz_sessions'
+});
 
-// Index for faster queries
-quizSessionSchema.index({ userId: 1, quizId: 1 });
-quizSessionSchema.index({ status: 1 });
-
-module.exports = mongoose.model('QuizSession', quizSessionSchema);
+module.exports = QuizSession;

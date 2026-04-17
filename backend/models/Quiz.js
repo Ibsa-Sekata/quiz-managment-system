@@ -1,72 +1,67 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const quizSchema = new mongoose.Schema({
+const Quiz = sequelize.define('Quiz', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     title: {
-        type: String,
-        required: [true, 'Quiz title is required'],
-        trim: true,
-        minlength: [3, 'Title must be at least 3 characters']
-    },
-    description: {
-        type: String,
-        required: [true, 'Quiz description is required'],
-        trim: true
-    },
-    questions: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'Question',
+        type: DataTypes.STRING(255),
+        allowNull: false,
         validate: {
-            validator: function (v) {
-                return v.length > 0;
-            },
-            message: 'Quiz must contain at least one question'
+            len: [3, 255]
         }
     },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
     timeLimit: {
-        type: Number,
-        default: null, // in minutes, null means no limit
-        min: [1, 'Time limit must be at least 1 minute']
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 1
+        }
     },
     maxAttempts: {
-        type: Number,
-        default: null, // null means unlimited attempts
-        min: [1, 'Max attempts must be at least 1']
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 1
+        }
     },
     passingScore: {
-        type: Number,
-        default: 50,
-        min: [0, 'Passing score cannot be negative'],
-        max: [100, 'Passing score cannot exceed 100']
+        type: DataTypes.INTEGER,
+        defaultValue: 50,
+        validate: {
+            min: 0,
+            max: 100
+        }
     },
     isPublished: {
-        type: Boolean,
-        default: false
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
     startDate: {
-        type: Date,
-        default: null
+        type: DataTypes.DATE,
+        allowNull: true
     },
     endDate: {
-        type: Date,
-        default: null
+        type: DataTypes.DATE,
+        allowNull: true
     },
-    createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    createdById: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     }
-}, { timestamps: true });
+}, {
+    tableName: 'quizzes'
+});
 
-// Index for faster queries
-quizSchema.index({ isPublished: 1, createdBy: 1 });
-quizSchema.index({ startDate: 1, endDate: 1 });
-
-module.exports = mongoose.model('Quiz', quizSchema);
+module.exports = Quiz;

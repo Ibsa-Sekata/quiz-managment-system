@@ -1,69 +1,81 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const resultSchema = new mongoose.Schema({
+const Result = sequelize.define('Result', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     },
     quizId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Quiz',
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'quizzes',
+            key: 'id'
+        }
     },
     quizSessionId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'QuizSession',
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'quiz_sessions',
+            key: 'id'
+        }
     },
     score: {
-        type: Number,
-        required: [true, 'Score is required'],
-        min: [0, 'Score cannot be negative'],
-        max: [100, 'Score cannot exceed 100']
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: false,
+        validate: {
+            min: 0,
+            max: 100
+        }
     },
     totalQuestions: {
-        type: Number,
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false
     },
     correctAnswers: {
-        type: Number,
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false
     },
     incorrectAnswers: {
-        type: Number,
-        required: true
+        type: DataTypes.INTEGER,
+        allowNull: false
     },
     timeSpent: {
-        type: Number,
-        required: true, // in seconds
-        min: [0, 'Time spent cannot be negative']
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+            min: 0
+        }
     },
     isPassed: {
-        type: Boolean,
-        required: true
+        type: DataTypes.BOOLEAN,
+        allowNull: false
     },
     feedback: {
-        type: String,
-        default: null
+        type: DataTypes.TEXT,
+        allowNull: true
     },
     attemptNumber: {
-        type: Number,
-        default: 1
+        type: DataTypes.INTEGER,
+        defaultValue: 1
     },
     completedAt: {
-        type: Date,
-        default: Date.now
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     }
-}, { timestamps: true });
+}, {
+    tableName: 'results'
+});
 
-// Index for faster queries
-resultSchema.index({ userId: 1, quizId: 1 });
-resultSchema.index({ userId: 1, completedAt: -1 });
-resultSchema.index({ quizId: 1, completedAt: -1 });
-
-module.exports = mongoose.model('Result', resultSchema);
+module.exports = Result;

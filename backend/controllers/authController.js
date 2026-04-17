@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT token
@@ -14,7 +14,7 @@ exports.register = async (req, res) => {
         const { fullName, email, password } = req.body;
 
         // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -23,15 +23,13 @@ exports.register = async (req, res) => {
         }
 
         // Create new user with pending status
-        const user = new User({
+        const user = await User.create({
             fullName,
             email,
             password,
             status: 'pending',
             role: 'user'
         });
-
-        await user.save();
 
         res.status(201).json({
             success: true,
@@ -52,8 +50,8 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user and include password field
-        const user = await User.findOne({ email }).select('+password');
+        // Find user
+        const user = await User.findOne({ where: { email } });
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -79,7 +77,7 @@ exports.login = async (req, res) => {
         }
 
         // Generate token
-        const token = generateToken(user._id);
+        const token = generateToken(user.id);
 
         res.status(200).json({
             success: true,
@@ -107,7 +105,7 @@ exports.logout = (req, res) => {
 // Get current user
 exports.getCurrentUser = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        const user = await User.findByPk(req.user.id);
         res.status(200).json({
             success: true,
             user: user.toJSON()

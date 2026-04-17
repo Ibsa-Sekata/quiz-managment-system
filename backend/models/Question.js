@@ -1,74 +1,69 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const questionSchema = new mongoose.Schema({
-    questionText: {
-        type: String,
-        required: [true, 'Question text is required'],
-        trim: true,
-        minlength: [10, 'Question must be at least 10 characters']
+const Question = sequelize.define('Question', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
     },
-    options: {
-        type: [
-            {
-                text: {
-                    type: String,
-                    required: true,
-                    trim: true
-                },
-                isCorrect: {
-                    type: Boolean,
-                    default: false
-                }
-            }
-        ],
+    questionText: {
+        type: DataTypes.TEXT,
+        allowNull: false,
         validate: {
-            validator: function (v) {
-                return v.length === 4;
-            },
-            message: 'Question must have exactly 4 options'
+            len: [10, 5000]
         }
     },
+    optionA: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    optionB: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    optionC: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
+    optionD: {
+        type: DataTypes.TEXT,
+        allowNull: false
+    },
     correctAnswerIndex: {
-        type: Number,
-        required: [true, 'Correct answer index is required'],
-        min: 0,
-        max: 3
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        validate: {
+            min: 0,
+            max: 3
+        }
     },
     category: {
-        type: String,
-        required: [true, 'Category is required'],
-        trim: true
+        type: DataTypes.STRING(255),
+        allowNull: false
     },
     tags: {
-        type: [String],
-        default: []
+        type: DataTypes.JSON,
+        defaultValue: []
     },
     difficulty: {
-        type: String,
-        enum: ['easy', 'medium', 'hard'],
-        default: 'medium'
+        type: DataTypes.ENUM('easy', 'medium', 'hard'),
+        defaultValue: 'medium'
     },
     explanation: {
-        type: String,
-        default: null
+        type: DataTypes.TEXT,
+        allowNull: true
     },
-    createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    createdById: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     }
-}, { timestamps: true });
+}, {
+    tableName: 'questions'
+});
 
-// Index for faster queries
-questionSchema.index({ category: 1, tags: 1 });
-questionSchema.index({ createdBy: 1 });
-
-module.exports = mongoose.model('Question', questionSchema);
+module.exports = Question;
