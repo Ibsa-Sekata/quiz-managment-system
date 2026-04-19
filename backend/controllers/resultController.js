@@ -123,17 +123,55 @@ exports.submitQuiz = async (req, res) => {
             feedback: isPassed ? 'Congratulations! You passed the quiz.' : 'You did not pass. Try again!'
         });
 
+        // Build question-by-question review
+        const sessionAnswers = await SessionAnswer.findAll({
+            where: { sessionId: session.id },
+            include: [{ model: Question, as: 'Question' }]
+        });
+
+        // Also get questions that were NOT answered (skipped)
+        const quizQuestions = await QuizQuestion.findAll({
+            where: { quizId: session.quizId },
+            include: [{ model: Question, as: 'Question' }],
+            order: [['order', 'ASC']]
+        });
+
+        const answeredMap = {};
+        sessionAnswers.forEach(sa => { answeredMap[sa.questionId] = sa; });
+
+        const review = quizQuestions.map((qq, index) => {
+            const q = qq.Question;
+            const sa = answeredMap[q.id];
+            const options = [q.optionA, q.optionB, q.optionC, q.optionD];
+            return {
+                number: index + 1,
+                questionText: q.questionText,
+                options,
+                correctAnswerIndex: q.correctAnswerIndex,
+                correctAnswerText: options[q.correctAnswerIndex],
+                selectedAnswerIndex: sa ? sa.selectedAnswerIndex : null,
+                selectedAnswerText: sa ? options[sa.selectedAnswerIndex] : null,
+                isCorrect: sa ? sa.isCorrect : false,
+                isSkipped: !sa,
+                explanation: q.explanation || null
+            };
+        });
+
         res.status(200).json({
             success: true,
             message: 'Quiz submitted successfully',
             result: {
+                resultId: result.id,
                 score: result.score,
                 totalQuestions: result.totalQuestions,
                 correctAnswers: result.correctAnswers,
                 incorrectAnswers: result.incorrectAnswers,
                 isPassed: result.isPassed,
                 timeSpent: result.timeSpent,
-                feedback: result.feedback
+                feedback: result.feedback,
+                passingScore: quiz.passingScore,
+                quizTitle: quiz.title,
+                review
             }
         });
     } catch (error) {
