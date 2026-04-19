@@ -21,7 +21,7 @@ const QuizPage = () => {
         try {
             const response = await api.post(`/results/${sessionId}/submit`);
             toast.success('Quiz submitted!');
-            navigate('/results', { state: { result: response.data.result } });
+            navigate('/quiz-review', { state: { result: response.data.result } });
         } catch {
             toast.error('Failed to submit quiz');
             setSubmitting(false);
@@ -98,7 +98,7 @@ const QuizPage = () => {
                     </div>
                     {timeLeft !== null && (
                         <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm ${isLowTime ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse'
-                                : 'bg-blue-50 dark:bg-blue-900/20 text-primary-600 dark:text-primary-400'}`}>
+                            : 'bg-blue-50 dark:bg-blue-900/20 text-primary-600 dark:text-primary-400'}`}>
                             <FiClock />
                             {formatTime(timeLeft)}
                         </div>
@@ -119,8 +119,8 @@ const QuizPage = () => {
                     {question.options.map((option, index) => (
                         <button key={index} onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion]: index }))}
                             className={`w-full p-4 text-left rounded-xl border-2 transition-all ${selected === index
-                                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-400'
-                                    : 'border-gray-200 dark:border-dark-border hover:border-primary-300 dark:hover:border-primary-600 bg-white dark:bg-dark-surface'
+                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-400'
+                                : 'border-gray-200 dark:border-dark-border hover:border-primary-300 dark:hover:border-primary-600 bg-white dark:bg-dark-surface'
                                 }`}>
                             <div className="flex items-center gap-3">
                                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected === index ? 'border-primary-500 bg-primary-500 dark:border-primary-400 dark:bg-primary-400' : 'border-gray-300 dark:border-slate-600'

@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import QuizPage from './pages/QuizPage';
+import QuizReviewPage from './pages/QuizReviewPage';
 import ResultsPage from './pages/ResultsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PrivateRoute from './components/PrivateRoute';
@@ -47,6 +48,9 @@ function App() {
                     } />
                     <Route path="/quiz/:quizId" element={
                         <PrivateRoute requiredRole="user"><QuizPage /></PrivateRoute>
+                    } />
+                    <Route path="/quiz-review" element={
+                        <PrivateRoute requiredRole="user"><QuizReviewPage /></PrivateRoute>
                     } />
                     <Route path="/results" element={
                         <PrivateRoute requiredRole="user"><ResultsPage /></PrivateRoute>
