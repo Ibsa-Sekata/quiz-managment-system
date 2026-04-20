@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { FiCheckCircle, FiXCircle, FiMinusCircle, FiClock, FiAward, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiMinusCircle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 const QuizReviewPage = () => {
     const location = useLocation();

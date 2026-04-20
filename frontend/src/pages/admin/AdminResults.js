@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiChevronDown, FiChevronUp, FiCheckCircle, FiXCircle, FiClock, FiUser } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiChevronDown, FiChevronUp, FiUser } from 'react-icons/fi';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -94,8 +94,8 @@ const AdminResults = () => {
                 ].map(t => (
                     <button key={t.key} onClick={() => setTab(t.key)}
                         className={`px-4 py-2.5 font-medium text-sm border-b-2 transition ${tab === t.key
-                                ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
-                                : 'border-transparent text-gray-500 dark:text-dark-muted hover:text-gray-700 dark:hover:text-slate-300'
+                            ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
+                            : 'border-transparent text-gray-500 dark:text-dark-muted hover:text-gray-700 dark:hover:text-slate-300'
                             }`}>
                         {t.label}
                     </button>

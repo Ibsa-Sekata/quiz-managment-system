@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { FiUsers, FiBook, FiBarChart2, FiPlus, FiGrid, FiBarChart, FiShield } from 'react-icons/fi';
+import { FiUsers, FiBook, FiBarChart2, FiPlus, FiGrid, FiShield } from 'react-icons/fi';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 import ManageUsers from './admin/ManageUsers';
