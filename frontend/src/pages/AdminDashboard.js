@@ -40,6 +40,8 @@ const Overview = () => {
         { to: '/admin/users', icon: FiUsers, label: 'Manage Users', desc: 'Approve or reject registrations', bg: 'bg-blue-100 dark:bg-blue-900/30', icon_c: 'text-blue-600 dark:text-blue-400' },
         { to: '/admin/quizzes', icon: FiBook, label: 'Manage Quizzes', desc: 'Create and publish quizzes', bg: 'bg-green-100 dark:bg-green-900/30', icon_c: 'text-green-600 dark:text-green-400' },
         { to: '/admin/questions', icon: FiPlus, label: 'Manage Questions', desc: 'Create and organize questions', bg: 'bg-purple-100 dark:bg-purple-900/30', icon_c: 'text-purple-600 dark:text-purple-400' },
+        { to: '/admin/permissions', icon: FiShield, label: 'Quiz Permissions', desc: 'Control who can take each quiz', bg: 'bg-orange-100 dark:bg-orange-900/30', icon_c: 'text-orange-600 dark:text-orange-400' },
+        { to: '/admin/results', icon: FiBarChart2, label: 'View Results', desc: 'See all user quiz results', bg: 'bg-teal-100 dark:bg-teal-900/30', icon_c: 'text-teal-600 dark:text-teal-400' },
     ];
 
     return (
@@ -61,7 +63,7 @@ const Overview = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
                 {quickLinks.map(l => (
                     <Link key={l.to} to={l.to} className="card p-6 hover:shadow-md transition-shadow group">
                         <div className="flex items-center gap-4">
@@ -88,6 +90,8 @@ const AdminDashboard = () => {
         { path: '/admin/users', label: 'Users', icon: FiUsers },
         { path: '/admin/questions', label: 'Questions', icon: FiPlus },
         { path: '/admin/quizzes', label: 'Quizzes', icon: FiBook },
+        { path: '/admin/permissions', label: 'Permissions', icon: FiShield },
+        { path: '/admin/results', label: 'Results', icon: FiBarChart2 },
     ];
 
     const isActive = (path, exact) => exact ? location.pathname === path : location.pathname.startsWith(path);
@@ -132,6 +136,8 @@ const AdminDashboard = () => {
                     <Route path="users" element={<ManageUsers />} />
                     <Route path="questions" element={<ManageQuestions />} />
                     <Route path="quizzes" element={<ManageQuizzes />} />
+                    <Route path="permissions" element={<QuizPermissions />} />
+                    <Route path="results" element={<AdminResults />} />
                     <Route path="*" element={<Navigate to="/admin" />} />
                 </Routes>
             </main>
