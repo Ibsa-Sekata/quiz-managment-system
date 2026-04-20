@@ -47,9 +47,9 @@ const QuizReviewPage = () => {
         const isCorrect = optionIndex === question.correctAnswerIndex;
         const isSelected = optionIndex === question.selectedAnswerIndex;
 
-        if (isCorrect) return <FiCheckCircle className="text-green-500 flex-shrink-0" size={18} />;
-        if (isSelected && !isCorrect) return <FiXCircle className="text-red-500 flex-shrink-0" size={18} />;
-        return <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600 flex-shrink-0" />;
+        if (isCorrect) return (<FiCheckCircle className="text-green-500 flex-shrink-0" size={18} />);
+        if (isSelected && !isCorrect) return (<FiXCircle className="text-red-500 flex-shrink-0" size={18} />);
+        return (<div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600 flex-shrink-0" />);
     };
 
     const getQuestionStatus = (q) => {
@@ -187,10 +187,10 @@ const QuizReviewPage = () => {
                                                     {['A', 'B', 'C', 'D'][optIdx]}.
                                                 </span>
                                                 <span className={`text-sm flex-1 ${optIdx === q.correctAnswerIndex
-                                                        ? 'text-green-700 dark:text-green-300 font-medium'
-                                                        : optIdx === q.selectedAnswerIndex && !q.isCorrect
-                                                            ? 'text-red-700 dark:text-red-300 font-medium'
-                                                            : 'text-gray-700 dark:text-slate-300'
+                                                    ? 'text-green-700 dark:text-green-300 font-medium'
+                                                    : optIdx === q.selectedAnswerIndex && !q.isCorrect
+                                                        ? 'text-red-700 dark:text-red-300 font-medium'
+                                                        : 'text-gray-700 dark:text-slate-300'
                                                     }`}>
                                                     {opt}
                                                 </span>
