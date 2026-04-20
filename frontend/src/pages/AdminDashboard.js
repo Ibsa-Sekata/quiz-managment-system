@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { FiUsers, FiBook, FiBarChart2, FiPlus, FiGrid } from 'react-icons/fi';
+import { FiUsers, FiBook, FiBarChart2, FiPlus, FiGrid, FiBarChart, FiShield } from 'react-icons/fi';
 import api from '../services/api';
 import { toast } from 'react-toastify';
 import ManageUsers from './admin/ManageUsers';
 import ManageQuestions from './admin/ManageQuestions';
 import ManageQuizzes from './admin/ManageQuizzes';
+import AdminResults from './admin/AdminResults';
+import QuizPermissions from './admin/QuizPermissions';
 
 const Overview = () => {
     const [stats, setStats] = useState({ totalUsers: 0, pendingRequests: 0, totalQuizzes: 0, publishedQuizzes: 0 });
@@ -101,8 +103,8 @@ const AdminDashboard = () => {
                     {navItems.map(item => (
                         <Link key={item.path} to={item.path}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive(item.path, item.exact)
-                                    ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
-                                    : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-dark-bg'
+                                ? 'bg-primary-600 dark:bg-primary-500 text-white shadow-sm'
+                                : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-dark-bg'
                                 }`}>
                             <item.icon size={17} />
                             {item.label}
