@@ -385,6 +385,21 @@ exports.getUserPermissions = async (req, res) => {
     }
 };
 
+// ─── User: Get my own quiz permissions ───────────────────────────────────────
+exports.getMyPermissions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const permissions = await QuizPermission.findAll({
+            where: { userId },
+            include: [{ association: 'Quiz', attributes: ['id', 'title', 'isPublished'] }],
+            order: [['grantedAt', 'DESC']]
+        });
+        res.status(200).json({ success: true, permissions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch permissions', error: error.message });
+    }
+};
+
 // ─── Admin: Grant permission to ALL approved users for a quiz ─────────────────
 exports.grantPermissionToAll = async (req, res) => {
     try {
