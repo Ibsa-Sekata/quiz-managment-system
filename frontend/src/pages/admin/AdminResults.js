@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiCheckCircle, FiXCircle, FiChevronDown, FiChevronUp, FiUser } from 'react-icons/fi';
+import { FiSearch, FiCheckCircle, FiXCircle, FiChevronDown, FiChevronUp, FiUser } from 'react-icons/fi';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 
