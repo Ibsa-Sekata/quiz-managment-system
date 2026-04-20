@@ -17,6 +17,7 @@ router.get('/quiz/:quizId/performance', verifyToken, isAdmin, resultController.g
 router.post('/permissions/grant', verifyToken, isAdmin, resultController.grantPermission);
 router.post('/permissions/revoke', verifyToken, isAdmin, resultController.revokePermission);
 router.get('/permissions/quiz/:quizId', verifyToken, isAdmin, resultController.getQuizPermissions);
+router.get('/permissions/user/me', verifyToken, isApproved, resultController.getMyPermissions);
 router.get('/permissions/user/:userId', verifyToken, isAdmin, resultController.getUserPermissions);
 router.post('/permissions/grant-all/:quizId', verifyToken, isAdmin, resultController.grantPermissionToAll);
 
