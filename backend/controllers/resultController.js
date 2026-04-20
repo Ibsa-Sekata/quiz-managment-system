@@ -1,6 +1,6 @@
-const { Result, QuizSession, SessionAnswer, Quiz, Question, QuizQuestion } = require('../models');
+const { Result, QuizSession, SessionAnswer, Quiz, Question, QuizQuestion, QuizPermission, User } = require('../models');
 
-// Start quiz session
+// ─── Start quiz session ───────────────────────────────────────────────────────
 exports.startQuizSession = async (req, res) => {
     try {
         const { quizId } = req.params;
@@ -10,6 +10,15 @@ exports.startQuizSession = async (req, res) => {
         if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
         if (!quiz.isPublished) return res.status(400).json({ success: false, message: 'Quiz is not published' });
 
+        // Check quiz permission
+        const permission = await QuizPermission.findOne({ where: { userId, quizId } });
+        if (!permission) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to take this quiz. Please contact your administrator.'
+            });
+        }
+
         // Check attempt limit
         if (quiz.maxAttempts) {
             const attemptCount = await Result.count({ where: { userId, quizId } });
@@ -18,7 +27,6 @@ exports.startQuizSession = async (req, res) => {
             }
         }
 
-        // Get questions for this quiz
         const quizQuestions = await QuizQuestion.findAll({
             where: { quizId },
             include: [{ model: Question, as: 'Question' }],
@@ -26,8 +34,7 @@ exports.startQuizSession = async (req, res) => {
         });
 
         const session = await QuizSession.create({
-            userId,
-            quizId,
+            userId, quizId,
             totalQuestions: quizQuestions.length,
             status: 'in-progress'
         });
@@ -59,7 +66,7 @@ exports.startQuizSession = async (req, res) => {
     }
 };
 
-// Submit answer
+// ─── Submit answer ────────────────────────────────────────────────────────────
 exports.submitAnswer = async (req, res) => {
     try {
         const { sessionId } = req.params;
@@ -73,13 +80,9 @@ exports.submitAnswer = async (req, res) => {
         if (!question) return res.status(404).json({ success: false, message: 'Question not found' });
 
         const isCorrect = selectedAnswerIndex === question.correctAnswerIndex;
-
         await SessionAnswer.create({ sessionId, questionId, selectedAnswerIndex, isCorrect });
 
-        if (isCorrect) {
-            session.correctAnswers += 1;
-            await session.save();
-        }
+        if (isCorrect) { session.correctAnswers += 1; await session.save(); }
 
         res.status(200).json({ success: true, message: 'Answer submitted', isCorrect });
     } catch (error) {
@@ -87,7 +90,7 @@ exports.submitAnswer = async (req, res) => {
     }
 };
 
-// Submit quiz
+// ─── Submit quiz ──────────────────────────────────────────────────────────────
 exports.submitQuiz = async (req, res) => {
     try {
         const { sessionId } = req.params;
@@ -123,13 +126,11 @@ exports.submitQuiz = async (req, res) => {
             feedback: isPassed ? 'Congratulations! You passed the quiz.' : 'You did not pass. Try again!'
         });
 
-        // Build question-by-question review
+        // Build review
         const sessionAnswers = await SessionAnswer.findAll({
             where: { sessionId: session.id },
             include: [{ model: Question, as: 'Question' }]
         });
-
-        // Also get questions that were NOT answered (skipped)
         const quizQuestions = await QuizQuestion.findAll({
             where: { quizId: session.quizId },
             include: [{ model: Question, as: 'Question' }],
@@ -179,7 +180,7 @@ exports.submitQuiz = async (req, res) => {
     }
 };
 
-// Get user results
+// ─── Get current user results ─────────────────────────────────────────────────
 exports.getUserResults = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -192,8 +193,7 @@ exports.getUserResults = async (req, res) => {
         const { count, rows } = await Result.findAndCountAll({
             where,
             include: [{ association: 'Quiz', attributes: ['id', 'title'] }],
-            offset,
-            limit: parseInt(limit),
+            offset, limit: parseInt(limit),
             order: [['completedAt', 'DESC']]
         });
 
@@ -203,7 +203,7 @@ exports.getUserResults = async (req, res) => {
     }
 };
 
-// Get result by ID
+// ─── Get result by ID ─────────────────────────────────────────────────────────
 exports.getResultById = async (req, res) => {
     try {
         const { resultId } = req.params;
@@ -221,14 +221,64 @@ exports.getResultById = async (req, res) => {
     }
 };
 
-// Get quiz performance statistics (Admin only)
+// ─── Admin: Get ALL results (all users) ───────────────────────────────────────
+exports.getAllResults = async (req, res) => {
+    try {
+        const { userId, quizId, page = 1, limit = 20 } = req.query;
+
+        let where = {};
+        if (userId) where.userId = userId;
+        if (quizId) where.quizId = quizId;
+
+        const offset = (page - 1) * limit;
+        const { count, rows } = await Result.findAndCountAll({
+            where,
+            include: [
+                { association: 'User', attributes: ['id', 'fullName', 'email'] },
+                { association: 'Quiz', attributes: ['id', 'title'] }
+            ],
+            offset, limit: parseInt(limit),
+            order: [['completedAt', 'DESC']]
+        });
+
+        res.status(200).json({ success: true, total: count, page: parseInt(page), limit: parseInt(limit), results: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch results', error: error.message });
+    }
+};
+
+// ─── Admin: Get results for a specific user ───────────────────────────────────
+exports.getUserResultsAdmin = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const user = await User.findByPk(userId, { attributes: ['id', 'fullName', 'email'] });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const results = await Result.findAll({
+            where: { userId },
+            include: [{ association: 'Quiz', attributes: ['id', 'title', 'passingScore'] }],
+            order: [['completedAt', 'DESC']]
+        });
+
+        res.status(200).json({ success: true, user, results });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch user results', error: error.message });
+    }
+};
+
+// ─── Get quiz performance statistics (Admin) ──────────────────────────────────
 exports.getQuizPerformance = async (req, res) => {
     try {
         const { quizId } = req.params;
-        const results = await Result.findAll({ where: { quizId } });
+        const results = await Result.findAll({
+            where: { quizId },
+            include: [{ association: 'User', attributes: ['id', 'fullName', 'email'] }],
+            order: [['completedAt', 'DESC']]
+        });
 
         if (results.length === 0) {
-            return res.status(200).json({ success: true, statistics: { totalAttempts: 0, averageScore: 0, passRate: 0, totalUsers: 0 } });
+            return res.status(200).json({ success: true, statistics: { totalAttempts: 0, averageScore: 0, passRate: 0, totalUsers: 0 }, results: [] });
         }
 
         const totalAttempts = results.length;
@@ -237,13 +287,13 @@ exports.getQuizPerformance = async (req, res) => {
         const passRate = Math.round((passedCount / totalAttempts) * 100);
         const totalUsers = new Set(results.map(r => r.userId)).size;
 
-        res.status(200).json({ success: true, statistics: { totalAttempts, averageScore, passRate, totalUsers } });
+        res.status(200).json({ success: true, statistics: { totalAttempts, averageScore, passRate, totalUsers }, results });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch performance statistics', error: error.message });
     }
 };
 
-// Get user performance statistics
+// ─── Get user performance statistics ─────────────────────────────────────────
 exports.getUserPerformance = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -261,5 +311,101 @@ exports.getUserPerformance = async (req, res) => {
         res.status(200).json({ success: true, statistics: { totalQuizzesTaken, averageScore, passedQuizzes, failedQuizzes } });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch performance statistics', error: error.message });
+    }
+};
+
+// ─── Admin: Grant quiz permission to user ─────────────────────────────────────
+exports.grantPermission = async (req, res) => {
+    try {
+        const { userId, quizId } = req.body;
+
+        const user = await User.findByPk(userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const quiz = await Quiz.findByPk(quizId);
+        if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+        const existing = await QuizPermission.findOne({ where: { userId, quizId } });
+        if (existing) return res.status(400).json({ success: false, message: 'Permission already granted' });
+
+        const permission = await QuizPermission.create({ userId, quizId, grantedById: req.user.id });
+
+        res.status(201).json({ success: true, message: `Permission granted to ${user.fullName} for "${quiz.title}"`, permission });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to grant permission', error: error.message });
+    }
+};
+
+// ─── Admin: Revoke quiz permission from user ──────────────────────────────────
+exports.revokePermission = async (req, res) => {
+    try {
+        const { userId, quizId } = req.body;
+
+        const permission = await QuizPermission.findOne({ where: { userId, quizId } });
+        if (!permission) return res.status(404).json({ success: false, message: 'Permission not found' });
+
+        await permission.destroy();
+        res.status(200).json({ success: true, message: 'Permission revoked successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to revoke permission', error: error.message });
+    }
+};
+
+// ─── Admin: Get all permissions for a quiz ────────────────────────────────────
+exports.getQuizPermissions = async (req, res) => {
+    try {
+        const { quizId } = req.params;
+
+        const permissions = await QuizPermission.findAll({
+            where: { quizId },
+            include: [{ association: 'User', attributes: ['id', 'fullName', 'email'] }],
+            order: [['grantedAt', 'DESC']]
+        });
+
+        res.status(200).json({ success: true, permissions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch permissions', error: error.message });
+    }
+};
+
+// ─── Admin: Get all permissions for a user ────────────────────────────────────
+exports.getUserPermissions = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const permissions = await QuizPermission.findAll({
+            where: { userId },
+            include: [{ association: 'Quiz', attributes: ['id', 'title', 'isPublished'] }],
+            order: [['grantedAt', 'DESC']]
+        });
+
+        res.status(200).json({ success: true, permissions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch user permissions', error: error.message });
+    }
+};
+
+// ─── Admin: Grant permission to ALL approved users for a quiz ─────────────────
+exports.grantPermissionToAll = async (req, res) => {
+    try {
+        const { quizId } = req.params;
+
+        const quiz = await Quiz.findByPk(quizId);
+        if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+        const approvedUsers = await User.findAll({ where: { status: 'approved', role: 'user' } });
+
+        let granted = 0;
+        for (const user of approvedUsers) {
+            const exists = await QuizPermission.findOne({ where: { userId: user.id, quizId } });
+            if (!exists) {
+                await QuizPermission.create({ userId: user.id, quizId, grantedById: req.user.id });
+                granted++;
+            }
+        }
+
+        res.status(200).json({ success: true, message: `Permission granted to ${granted} users for "${quiz.title}"` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to grant permissions', error: error.message });
     }
 };
