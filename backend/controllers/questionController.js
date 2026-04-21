@@ -1,7 +1,7 @@
 const { Question, Quiz, QuizQuestion } = require('../models');
 const { Op } = require('sequelize');
 
-// Create question (Admin only)
+// Create single question (Admin only)
 exports.createQuestion = async (req, res) => {
     try {
         const { questionText, options, correctAnswerIndex, category, tags, difficulty, explanation } = req.body;
@@ -31,6 +31,60 @@ exports.createQuestion = async (req, res) => {
             message: 'Failed to create question',
             error: error.message
         });
+    }
+};
+
+// Bulk create questions (Admin only)
+exports.bulkCreateQuestions = async (req, res) => {
+    try {
+        const { questions } = req.body;
+
+        if (!Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ success: false, message: 'Questions array is required' });
+        }
+
+        const created = [];
+        const errors = [];
+
+        for (let i = 0; i < questions.length; i++) {
+            const q = questions[i];
+            try {
+                if (!q.questionText || !q.options || q.options.length !== 4 || !q.category) {
+                    errors.push({ index: i + 1, message: 'Missing required fields' });
+                    continue;
+                }
+                if (q.options.some(o => !o || !String(o).trim())) {
+                    errors.push({ index: i + 1, message: 'All 4 options must have text' });
+                    continue;
+                }
+                const question = await Question.create({
+                    questionText: q.questionText,
+                    optionA: q.options[0],
+                    optionB: q.options[1],
+                    optionC: q.options[2],
+                    optionD: q.options[3],
+                    correctAnswerIndex: q.correctAnswerIndex || 0,
+                    category: q.category,
+                    tags: q.tags || [],
+                    difficulty: q.difficulty || 'medium',
+                    explanation: q.explanation || null,
+                    createdById: req.user.id
+                });
+                created.push(question);
+            } catch (err) {
+                errors.push({ index: i + 1, message: err.message });
+            }
+        }
+
+        res.status(201).json({
+            success: true,
+            message: `${created.length} question(s) created${errors.length > 0 ? `, ${errors.length} failed` : ''}`,
+            created: created.length,
+            failed: errors.length,
+            errors
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to bulk create questions', error: error.message });
     }
 };
 
