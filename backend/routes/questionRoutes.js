@@ -11,6 +11,7 @@ router.get('/category/:category', verifyToken, isAdmin, questionController.getQu
 
 // CRUD
 router.post('/', verifyToken, isAdmin, validateQuestion, validate, questionController.createQuestion);
+router.post('/bulk', verifyToken, isAdmin, questionController.bulkCreateQuestions);
 router.get('/:questionId', verifyToken, isAdmin, questionController.getQuestionById);
 router.put('/:questionId', verifyToken, isAdmin, validateQuestion, validate, questionController.updateQuestion);
 router.delete('/:questionId', verifyToken, isAdmin, questionController.deleteQuestion);
