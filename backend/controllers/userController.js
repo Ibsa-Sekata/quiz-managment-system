@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User, Result, QuizSession, SessionAnswer, QuizPermission, Question, Quiz, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // Get all pending registration requests (Admin only)
@@ -223,6 +223,97 @@ exports.getUserStatistics = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch statistics',
+            error: error.message
+        });
+    }
+};
+
+// Delete user (Admin only)
+exports.deleteUser = async (req, res) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        const { userId } = req.params;
+        const targetUserId = parseInt(userId, 10);
+
+        if (Number.isNaN(targetUserId)) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user id'
+            });
+        }
+
+        if (req.user.id === targetUserId) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'You cannot delete your own account'
+            });
+        }
+
+        const user = await User.findByPk(targetUserId, { transaction });
+        if (!user) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        if (user.role === 'admin') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Admin accounts cannot be deleted'
+            });
+        }
+
+        const [createdQuestionsCount, createdQuizzesCount] = await Promise.all([
+            Question.count({ where: { createdById: targetUserId }, transaction }),
+            Quiz.count({ where: { createdById: targetUserId }, transaction })
+        ]);
+
+        if (createdQuestionsCount > 0 || createdQuizzesCount > 0) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete user with authored quizzes or questions'
+            });
+        }
+
+        const sessions = await QuizSession.findAll({
+            where: { userId: targetUserId },
+            attributes: ['id'],
+            transaction
+        });
+
+        const sessionIds = sessions.map((session) => session.id);
+
+        await Promise.all([
+            Result.destroy({ where: { userId: targetUserId }, transaction }),
+            QuizPermission.destroy({ where: { userId: targetUserId }, transaction }),
+            QuizPermission.destroy({ where: { grantedById: targetUserId }, transaction })
+        ]);
+
+        if (sessionIds.length > 0) {
+            await SessionAnswer.destroy({ where: { sessionId: sessionIds }, transaction });
+        }
+
+        await QuizSession.destroy({ where: { userId: targetUserId }, transaction });
+        await user.destroy({ transaction });
+
+        await transaction.commit();
+
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully'
+        });
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete user',
             error: error.message
         });
     }
