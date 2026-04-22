@@ -1,4 +1,4 @@
-const { Result, QuizSession, SessionAnswer, Quiz, Question, QuizQuestion, QuizPermission, User } = require('../models');
+const { Result, QuizSession, SessionAnswer, Quiz, Question, QuizQuestion, QuizPermission, User, sequelize } = require('../models');
 
 // ─── Start quiz session ───────────────────────────────────────────────────────
 exports.startQuizSession = async (req, res) => {
@@ -422,5 +422,33 @@ exports.grantPermissionToAll = async (req, res) => {
         res.status(200).json({ success: true, message: `Permission granted to ${granted} users for "${quiz.title}"` });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to grant permissions', error: error.message });
+    }
+};
+
+// ─── Admin: Delete a result ───────────────────────────────────────────────────
+exports.deleteResult = async (req, res) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        const { resultId } = req.params;
+
+        const result = await Result.findByPk(resultId, { transaction });
+        if (!result) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: 'Result not found' });
+        }
+
+        if (result.quizSessionId) {
+            await SessionAnswer.destroy({ where: { sessionId: result.quizSessionId }, transaction });
+            await QuizSession.destroy({ where: { id: result.quizSessionId }, transaction });
+        }
+
+        await result.destroy({ transaction });
+
+        await transaction.commit();
+        res.status(200).json({ success: true, message: 'Result deleted successfully' });
+    } catch (error) {
+        await transaction.rollback();
+        res.status(500).json({ success: false, message: 'Failed to delete result', error: error.message });
     }
 };
