@@ -12,6 +12,7 @@ router.put('/profile', verifyToken, isApproved, userController.updateProfile);
 // Admin actions
 router.post('/approve/:userId', verifyToken, isAdmin, userController.approveUser);
 router.post('/reject/:userId', verifyToken, isAdmin, userController.rejectUser);
+router.delete('/:userId', verifyToken, isAdmin, userController.deleteUser);
 
 // Dynamic routes LAST
 router.get('/:userId', verifyToken, userController.getUserById);
