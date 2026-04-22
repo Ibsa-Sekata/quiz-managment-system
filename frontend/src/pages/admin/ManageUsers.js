@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiCheck, FiX, FiUser } from 'react-icons/fi';
+import { FiCheck, FiX, FiUser, FiTrash2 } from 'react-icons/fi';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -39,6 +39,19 @@ const ManageUsers = () => {
         } catch { toast.error('Failed to reject user'); }
     };
 
+    const handleDeleteUser = async (user) => {
+        const confirmed = window.confirm(`Delete user \"${user.fullName}\" and all related attempts? This cannot be undone.`);
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/users/${user.id}`);
+            toast.success('User deleted');
+            fetchUsers();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete user');
+        }
+    };
+
     const statusBadge = (s) => {
         const map = { pending: 'badge-yellow', approved: 'badge-green', rejected: 'badge-red' };
         return <span className={map[s]}>{s.charAt(0).toUpperCase() + s.slice(1)}</span>;
@@ -62,7 +75,7 @@ const ManageUsers = () => {
                 ].map(t => (
                     <button key={t.key} onClick={() => setTab(t.key)}
                         className={`px-4 py-2.5 font-medium text-sm border-b-2 transition ${tab === t.key ? 'border-primary-600 text-primary-600 dark:text-primary-400 dark:border-primary-400'
-                                : 'border-transparent text-gray-500 dark:text-dark-muted hover:text-gray-700 dark:hover:text-slate-300'
+                            : 'border-transparent text-gray-500 dark:text-dark-muted hover:text-gray-700 dark:hover:text-slate-300'
                             }`}>
                         {t.label}
                         {t.count > 0 && <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">{t.count}</span>}
@@ -120,7 +133,7 @@ const ManageUsers = () => {
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50 dark:bg-dark-bg border-b border-gray-200 dark:border-dark-border">
                             <tr>
-                                {['Name', 'Email', 'Role', 'Status', 'Joined'].map(h => (
+                                {['Name', 'Email', 'Role', 'Status', 'Joined', 'Action'].map(h => (
                                     <th key={h} className="text-left px-5 py-3 text-gray-600 dark:text-dark-muted font-semibold text-xs uppercase tracking-wider">{h}</th>
                                 ))}
                             </tr>
@@ -135,6 +148,18 @@ const ManageUsers = () => {
                                     </td>
                                     <td className="px-5 py-3.5">{statusBadge(user.status)}</td>
                                     <td className="px-5 py-3.5 text-gray-400 dark:text-slate-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-5 py-3.5">
+                                        {user.role !== 'admin' ? (
+                                            <button
+                                                onClick={() => handleDeleteUser(user)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40 transition"
+                                            >
+                                                <FiTrash2 size={13} /> Delete
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-gray-400 dark:text-dark-muted">Protected</span>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
