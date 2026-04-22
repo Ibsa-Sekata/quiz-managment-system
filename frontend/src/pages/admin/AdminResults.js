@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiChevronDown, FiChevronUp, FiUser } from 'react-icons/fi';
+import { FiSearch, FiChevronDown, FiChevronUp, FiUser, FiTrash2 } from 'react-icons/fi';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -44,6 +44,21 @@ const AdminResults = () => {
             setExpandedUser(userId);
         } catch { toast.error('Failed to fetch user results'); }
         finally { setLoadingUser(null); }
+    };
+
+    const handleDeleteResult = async (result) => {
+        const confirmed = window.confirm(`Delete this result for ${result.User?.fullName || 'this user'}? This cannot be undone.`);
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/results/admin/${result.id}`);
+            toast.success('Result deleted');
+            setExpandedUser(null);
+            setUserResults({});
+            fetchData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete result');
+        }
     };
 
     const formatDate = (d) => new Date(d).toLocaleDateString('en-US', {
@@ -136,7 +151,7 @@ const AdminResults = () => {
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 dark:bg-dark-bg border-b border-gray-200 dark:border-dark-border">
                                     <tr>
-                                        {['User', 'Quiz', 'Score', 'Result', 'Correct', 'Time', 'Date'].map(h => (
+                                        {['User', 'Quiz', 'Score', 'Result', 'Correct', 'Time', 'Date', 'Action'].map(h => (
                                             <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-dark-muted uppercase tracking-wider">{h}</th>
                                         ))}
                                     </tr>
@@ -164,6 +179,14 @@ const AdminResults = () => {
                                             </td>
                                             <td className="px-4 py-3 text-gray-500 dark:text-dark-muted">{formatTime(r.timeSpent)}</td>
                                             <td className="px-4 py-3 text-gray-400 dark:text-slate-600 text-xs">{formatDate(r.completedAt)}</td>
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    onClick={() => handleDeleteResult(r)}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40 transition"
+                                                >
+                                                    <FiTrash2 size={13} /> Delete
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -225,7 +248,7 @@ const AdminResults = () => {
                                         <table className="w-full text-sm">
                                             <thead className="bg-gray-50 dark:bg-dark-bg">
                                                 <tr>
-                                                    {['Quiz', 'Score', 'Result', 'Correct', 'Time Spent', 'Attempt', 'Date'].map(h => (
+                                                    {['Quiz', 'Score', 'Result', 'Correct', 'Time Spent', 'Attempt', 'Date', 'Action'].map(h => (
                                                         <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 dark:text-dark-muted">{h}</th>
                                                     ))}
                                                 </tr>
@@ -248,6 +271,14 @@ const AdminResults = () => {
                                                         <td className="px-4 py-3 text-gray-500 dark:text-dark-muted">{formatTime(r.timeSpent)}</td>
                                                         <td className="px-4 py-3 text-gray-500 dark:text-dark-muted">#{r.attemptNumber}</td>
                                                         <td className="px-4 py-3 text-gray-400 dark:text-slate-600 text-xs">{formatDate(r.completedAt)}</td>
+                                                        <td className="px-4 py-3">
+                                                            <button
+                                                                onClick={() => handleDeleteResult({ ...r, User: user })}
+                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/40 transition"
+                                                            >
+                                                                <FiTrash2 size={13} /> Delete
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
