@@ -11,6 +11,7 @@ router.get('/user/performance', verifyToken, isApproved, resultController.getUse
 // ── Admin routes ─────────────────────────────────────────────────────────────
 router.get('/admin/all', verifyToken, isAdmin, resultController.getAllResults);
 router.get('/admin/user/:userId', verifyToken, isAdmin, resultController.getUserResultsAdmin);
+router.delete('/admin/:resultId', verifyToken, isAdmin, resultController.deleteResult);
 router.get('/quiz/:quizId/performance', verifyToken, isAdmin, resultController.getQuizPerformance);
 
 // ── Permission routes (Admin) ─────────────────────────────────────────────────
